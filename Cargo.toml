@@ -1,0 +1,6 @@
+[package]
+name = "csv"
+version = "0.1.0"
+authors = ["Shisei Hanai <ruimo.uno@gmail.com>"]
+
+[dependencies]
