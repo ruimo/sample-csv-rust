@@ -62,16 +62,16 @@ impl CsvParser {
         }
     }
 
-    fn onChar(&mut self, s: &State, c: char, line_no: u32) -> Result<State, CsvParseError> {
+    fn on_char(&mut self, s: &State, c: char, line_no: u32) -> Result<State, CsvParseError> {
         match *s {
-            State::Init => self.onInit(c, line_no),
-            State::InQuote => self.onInQuote(c, line_no),
-            State::InQuoteQuote => self.onInQuoteQuote(c, line_no),
-            State::End => self.onEnd(c, line_no),
+            State::Init => self.on_init(c, line_no),
+            State::InQuote => self.on_in_quote(c, line_no),
+            State::InQuoteQuote => self.on_in_quote_quote(c, line_no),
+            State::End => self.on_end(c, line_no),
         }
     }
 
-    fn onInit(&mut self, c: char, line_no: u32) -> Result<State, CsvParseError> {
+    fn on_init(&mut self, c: char, line_no: u32) -> Result<State, CsvParseError> {
         match c {
             '\0' => {
                 self.result.push(self.buf.clone());
@@ -82,14 +82,15 @@ impl CsvParser {
                 Ok(State::End)
             },
             '\r' => Ok(State::Init),
-            '"' =>
+            '"' => {
                 if self.buf.is_empty() { Ok(State::InQuote) }
                 else {
                     Err(CsvParseError {
                         message: String::from("Parse error. Should be enclosed by double quote if data contains double quotes."),
                         line_no: line_no
                     })
-                },
+                }
+            },
             ',' => {
                 self.result.push(self.buf.clone());
                 self.buf.clear();
@@ -102,7 +103,7 @@ impl CsvParser {
         }
     }
 
-    fn onInQuote(&mut self, c: char, line_no: u32) -> Result<State, CsvParseError> {
+    fn on_in_quote(&mut self, c: char, line_no: u32) -> Result<State, CsvParseError> {
         match c {
             '\0' => Err(
                 CsvParseError {
@@ -118,7 +119,7 @@ impl CsvParser {
         }
     }
 
-    fn onInQuoteQuote(&mut self, c: char, line_no: u32) -> Result<State, CsvParseError> {
+    fn on_in_quote_quote(&mut self, c: char, line_no: u32) -> Result<State, CsvParseError> {
         match c {
             '\0' => {
                 self.result.push(self.buf.clone());
@@ -143,7 +144,7 @@ impl CsvParser {
         }
     }
 
-    fn onEnd(&mut self, c: char, line_no: u32) -> Result<State, CsvParseError> {
+    fn on_end(&mut self, c: char, _: u32) -> Result<State, CsvParseError> {
         match c {
             _ => Err(
                 CsvParseError {
@@ -162,18 +163,18 @@ impl CsvParser {
         loop {
             match itr.next() {
                 Some(c) => {
-                    match self.onChar(&state, c, itr.line_no) {
+                    match self.on_char(&state, c, itr.line_no) {
                         Err(e) => return Err(e),
                         Ok(next_state) => match next_state {
                             State::End => return Ok(self),
-                            _ => {}
+                            _ => {state = next_state}
                         }
                     }
                 },
                 None => {
-                    match self.onChar(&state, '\0', itr.line_no) {
+                    match self.on_char(&state, '\0', itr.line_no) {
                         Err(e) => return Err(e),
-                        Ok(next_state) => return Ok(self)
+                        Ok(_) => return Ok(self)
                     }
                 }
             }
